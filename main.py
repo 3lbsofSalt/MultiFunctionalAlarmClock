@@ -1,9 +1,21 @@
 #!/usr/bin/python
 import sys
 import argparse
+import tty
+import curses
 from datetime import datetime
+from time import time, sleep
+from os import listdir
+import pygame
+from random import shuffle
+from curses import wrapper
 
-def main():
+ENTER_KEY = 10
+SPACE_KEY = 32
+
+def main(stdscr):
+    stdscr.nodelay(True)
+
     parser = argparse.ArgumentParser()
     parser.add_argument("hour", help="The number of the hour you want to wake up at from 1-24", type=int)
     parser.add_argument("minute", help="The minute you wish to wake up at from 0-59", type=int)
@@ -11,7 +23,7 @@ def main():
     args = parser.parse_args()
 
     seconds = calcTime(args.hour, args.minute)
-    runAlarm(seconds)
+    runAlarm(seconds, stdscr)
 
 def calcTime(hour, minute):
     wake_seconds = hour * 3600 + minute * 60
@@ -24,12 +36,35 @@ def calcTime(hour, minute):
 
     return seconds
 
-def runAlarm(seconds):
-    start = datetime.timestamp()
-    while(datetime.timestamp() - start < seconds):
+def runAlarm(seconds, stdscr):
+    print("Alarm starting")
+    start = time()
+    while(time() - start < seconds):
         pass
-    print("Yay! It made it to the right time!")
+    playMusic(stdscr)
 
+def playMusic(stdscr):
+    songs = listdir('music')
+    shuffle(songs)
+
+    pygame.mixer.init()
+    pygame.mixer.music.load('music/' + songs[0])
+    pygame.mixer.music.play()
+
+    i = 9
+    while i:
+        pygame.mixer.music.queue('music/' + songs[i])
+        i -= 1
+
+    print('Playing music')
+    while pygame.mixer.music.get_busy():
+        if (stdscr.getch() == SPACE_KEY or stdscr.getch() == ENTER_KEY):
+            break
+
+    pygame.mixer.music.stop()
+
+    
 
 if __name__ == '__main__':
-    main()
+    wrapper(main)
+
